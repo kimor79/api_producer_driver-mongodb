@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ApiProducerDriverMongoDB {
 
 	protected $config = array();
+	protected $count = 0;
 	protected $error = '';
 	protected $mongo;
 	protected $slave_okay = false;
@@ -100,6 +101,14 @@ class ApiProducerDriverMongoDB {
 	}
 
 	public function __deconstruct() {
+	}
+
+	/**
+	 * Return the total number of records from a query
+	 * @return int
+	 */
+	public function count() {
+		return (int) $this->count;
 	}
 
 	/**
