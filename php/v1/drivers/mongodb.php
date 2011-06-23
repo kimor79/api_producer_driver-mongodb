@@ -233,6 +233,33 @@ class ApiProducerDriverMongoDB {
 
 		return false;
 	}
+
+	/**
+	 * Build and run insert()
+	 * @param string $collection
+	 * @param array $input field/values to add
+	 * @return mixed modified $input or false
+	 */
+	public function insert($collection, $input) {
+		$this->error = '';
+		$col = '';
+
+		try {
+			$col = $this->db->selectCollection($collection);
+
+			$col->insert($input, array('safe' => true));
+
+			if(array_key_exists('_id', $input)) {
+				return $input;
+			}
+
+			$this->error = '_id was not created';
+		} catch (MongoCursorException $e) {
+			$this->error = $e->getMessage();
+		}
+
+		return false;
+	}
 }
 
 ?>
