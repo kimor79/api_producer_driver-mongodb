@@ -132,6 +132,107 @@ class ApiProducerDriverMongoDB {
 
 		return $default;
 	}
+
+	/**
+	 * Build and run a find()
+	 * @param string $collection
+	 * @param array $input fields/values to search 
+	 * @param array $options
+	 * @return mixed array with details (which may be empty) or false
+	 */
+	public function find($collection, $input, $options) {
+		$this->count = '';
+		$this->error = '';
+		$col = '';
+		$cursor = NULL;
+		$data = array();
+		$query = array();
+
+		while(list($key, $values) = each($input)) {
+			$query[$key] = array(
+				'$in' => array(),
+			);
+
+			if(array_key_exists('eq', $values)) {
+				while(list($junk, $value) =
+						each($values['eq'])) {
+					$query[$key]['$in'][] = $value;
+				}
+			}
+
+			if(array_key_exists('re', $values)) {
+				while(list($junk, $value) =
+						each($values['re'])) {
+					$query[$key]['$in'][] =
+						new MongoRegex($value);
+				}
+			}
+
+			if(empty($query[$key]['$in'])) {
+				unset($query[$key]['$in']);
+			}
+
+			if(empty($query[$key])) {
+				unset($query[$key]);
+			}
+		}
+
+		try {
+			$col = $this->db->selectCollection($collection);
+
+			if(!empty($query)) {
+				$cursor = $col->find($query);
+			} else {
+				$cursor = $col->find();
+			}
+
+			if(!array_key_exists('outputFields', $options)) {
+				$options['outputFields'] = array();
+			}
+
+			if(!$options['id_as_string']) {
+				if(!array_key_exists('_id',
+						$options['outputFields'])) {
+					$options['outputFields']['_id'] = false;
+				}
+			}
+
+			$cursor->fields($options['outputFields']);
+
+			if($options['numResults']) {
+				$cursor->limit($options['numResults']);
+			}
+
+			if(array_key_exists('sortField', $options)) {
+				$cursor->sort(array($options['sortField'] =>
+					($options['sortDir'] == 'asc') ? 1 : 0,
+				));
+			}
+
+			if(array_key_exists('startIndex', $options)) {
+				$cursor->skip($options['startIndex']);
+			}
+
+			while($cursor->hasNext()) {
+				$t_data = $cursor->getNext();
+
+				if($options['id_as_string']) {
+					$t_data['id'] = $t_data['_id'] . '';
+					unset($t_data['_id']);
+				}
+
+				$data[] = $t_data;
+			}
+
+			$this->count = $cursor->count();
+
+			return $data;
+		} catch (MongoCursorException $e) {
+			$this->error = $e->getMessage();
+		}
+
+		return false;
+	}
 }
 
 ?>
