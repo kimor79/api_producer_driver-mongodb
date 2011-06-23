@@ -153,6 +153,11 @@ class ApiProducerDriverMongoDB {
 				'$in' => array(),
 			);
 
+			if(!is_array($values)) {
+				$query[$key]['$in'][] = $values;
+				continue;
+			}
+
 			if(array_key_exists('eq', $values)) {
 				while(list($junk, $value) =
 						each($values['eq'])) {
