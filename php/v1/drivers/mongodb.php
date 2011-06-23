@@ -235,6 +235,90 @@ class ApiProducerDriverMongoDB {
 	}
 
 	/**
+	 * Build and run a find(One)
+	 * @param string $collection
+	 * @param array $input fields/values to search 
+	 * @param array $options
+	 * @return mixed array with details (which may be empty) or false
+	 */
+	public function findOne($collection, $input, $options = array()) {
+		$this->count = '';
+		$this->error = '';
+		$col = '';
+		$query = array();
+		$result = array();
+
+		while(list($key, $values) = each($input)) {
+			$query[$key] = array(
+				'$in' => array(),
+			);
+
+			if(!is_array($values)) {
+				$query[$key]['$in'][] = $values;
+				continue;
+			}
+
+			if(array_key_exists('eq', $values)) {
+				while(list($junk, $value) =
+						each($values['eq'])) {
+					$query[$key]['$in'][] = $value;
+				}
+			}
+
+			if(array_key_exists('re', $values)) {
+				while(list($junk, $value) =
+						each($values['re'])) {
+					$query[$key]['$in'][] =
+						new MongoRegex($value);
+				}
+			}
+
+			if(empty($query[$key]['$in'])) {
+				unset($query[$key]['$in']);
+			}
+
+			if(empty($query[$key])) {
+				unset($query[$key]);
+			}
+		}
+
+		try {
+			$col = $this->db->selectCollection($collection);
+
+			if(!array_key_exists('outputFields', $options)) {
+				$options['outputFields'] = array();
+			}
+
+			if(!$options['id_as_string']) {
+				if(!array_key_exists('_id',
+						$options['outputFields'])) {
+					$options['outputFields']['_id'] = false;
+				}
+			}
+
+			$result = $col->findOne($query,
+				$options['outputFields']);
+
+			if(is_null($result)) {
+				$this->count = 0;
+				return array();
+			}
+
+			if($options['id_as_string']) {
+				$result['id'] = $result['_id'] . '';
+				unset($result['_id']);
+			}
+
+			$this->count = 1;
+			return $result;
+		} catch (MongoCursorException $e) {
+			$this->error = $e->getMessage();
+		}
+
+		return false;
+	}
+
+	/**
 	 * Build and run insert()
 	 * @param string $collection
 	 * @param array $input field/values to add
