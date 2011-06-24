@@ -168,8 +168,14 @@ class ApiProducerDriverMongoDB {
 			if(array_key_exists('re', $values)) {
 				while(list($junk, $value) =
 						each($values['re'])) {
-					$query[$key]['$in'][] =
-						new MongoRegex($value);
+					try {
+						$query[$key]['$in'][] =
+							new MongoRegex($value);
+					} catch (Exception $e) {
+						$this->error = $e->getMessage();
+					}
+
+					return false;
 				}
 			}
 
@@ -273,8 +279,14 @@ class ApiProducerDriverMongoDB {
 			if(array_key_exists('re', $values)) {
 				while(list($junk, $value) =
 						each($values['re'])) {
-					$query[$key]['$in'][] =
-						new MongoRegex($value);
+					try {
+						$query[$key]['$in'][] =
+							new MongoRegex($value);
+					} catch (Exception $e) {
+						$this->error = $e->getMessage();
+					}
+
+					return false;
 				}
 			}
 
