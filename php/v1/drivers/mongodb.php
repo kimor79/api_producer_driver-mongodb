@@ -95,7 +95,7 @@ class ApiProducerDriverMongoDB {
 
 		try {
 			$this->mongo = new Mongo($host, $options);
-		} catch (MongoConnectionException $e) {
+		} catch (Exception $e) {
 			throw new Exception($e->getMessage());
 		}
 	}
@@ -232,7 +232,7 @@ class ApiProducerDriverMongoDB {
 			$this->count = $cursor->count();
 
 			return $data;
-		} catch (MongoCursorException $e) {
+		} catch (Exception $e) {
 			$this->error = $e->getMessage();
 		}
 
@@ -316,7 +316,7 @@ class ApiProducerDriverMongoDB {
 
 			$this->count = 1;
 			return $result;
-		} catch (MongoCursorException $e) {
+		} catch (Exception $e) {
 			$this->error = $e->getMessage();
 		}
 
@@ -343,7 +343,7 @@ class ApiProducerDriverMongoDB {
 			}
 
 			$this->error = '_id was not created';
-		} catch (MongoCursorException $e) {
+		} catch (Exception $e) {
 			$this->error = $e->getMessage();
 		}
 
