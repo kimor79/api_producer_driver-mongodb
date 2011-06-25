@@ -104,6 +104,73 @@ class ApiProducerDriverMongoDB {
 	}
 
 	/**
+	 * Convert values from MongoId objects
+	 * @param mixed $input
+	 * @return mixed
+	 */
+	public function convertFromId($input) {
+		$output = $input;
+
+		if(!is_array($input)) {
+			return $output . '';
+		}
+
+		while(list($key, $val) = each($input)) {
+			if(substr($key, -3) !== '_id') {
+				continue;
+			}
+
+			if($key === 'id') {
+				unset($output[$key]);
+				$key = '_id';
+			}
+
+			$output[$key] = $this->convertFromId($val);
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Convert values to MongoId objects
+	 * @param mixed $input
+	 * @return mixed
+	 */
+	public function convertToId($input) {
+		$output = $input;
+
+		if(!is_array($input)) {
+			try {
+				$output = new MongoId($input);
+			} catch(Exception $e) {
+				$this->error = $e->getMessage();
+				return false;
+			}
+
+			return $output;
+		}
+
+		while(list($key, $val) = each($input)) {
+			if(substr($key, -3) !== '_id') {
+				continue;
+			}
+
+			if($key === 'id') {
+				unset($output[$key]);
+				$key = '_id';
+			}
+
+			$output[$key] = $this->convertFromId($val);
+
+			if($output[$key] === false) {
+				return false;
+			}
+		}
+
+		return $output;
+	}
+
+	/**
 	 * Return the total number of records from a query
 	 * @return int
 	 */
@@ -145,23 +212,49 @@ class ApiProducerDriverMongoDB {
 		$this->error = '';
 		$col = '';
 		$cursor = NULL;
-		$data = array();
+		$output = array();
 		$query = array();
 
 		while(list($key, $values) = each($input)) {
+			$convert_id = false;
+
+			if($options['_convert_id']) {
+				if($key === 'id') {
+					$convert_id = true;
+					$key = '_id';
+				} elseif(substr($key, -3) === '_id') {
+					$convert_id = true;
+				}
+			}
+
 			$query[$key] = array(
 				'$in' => array(),
 			);
 
 			if(!is_array($values)) {
-				$query[$key]['$in'][] = $values;
+				try {
+					$query[$key]['$in'][] = ($convert_id) ?
+						new MongoId($values) : $values;
+				} catch (Exception $e) {
+					$this->error = $e->getMessage();
+					return false;
+				}
+
 				continue;
 			}
 
 			if(array_key_exists('eq', $values)) {
 				while(list($junk, $value) =
 						each($values['eq'])) {
-					$query[$key]['$in'][] = $value;
+					try {
+						$query[$key]['$in'][] =
+							($convert_id) ?
+							new MongoId($value) :
+							$value;
+					} catch (Exception $e) {
+						$this->error = $e->getMessage();
+						return false;
+					}
 				}
 			}
 
@@ -173,9 +266,8 @@ class ApiProducerDriverMongoDB {
 							new MongoRegex($value);
 					} catch (Exception $e) {
 						$this->error = $e->getMessage();
+						return false;
 					}
-
-					return false;
 				}
 			}
 
@@ -201,7 +293,7 @@ class ApiProducerDriverMongoDB {
 				$options['outputFields'] = array();
 			}
 
-			if(!$options['id_as_string']) {
+			if(!$options['_convert_id']) {
 				if(!array_key_exists('_id',
 						$options['outputFields'])) {
 					$options['outputFields']['_id'] = false;
@@ -225,19 +317,25 @@ class ApiProducerDriverMongoDB {
 			}
 
 			while($cursor->hasNext()) {
-				$t_data = $cursor->getNext();
+				$data = $cursor->getNext();
 
-				if($options['id_as_string']) {
-					$t_data['id'] = $t_data['_id'] . '';
-					unset($t_data['_id']);
+				if($options['_convert_id']) {
+					$data['id'] = $data['_id'] . '';
+					unset($data['_id']);
+
+					while(list($key, $val) = each($data)) {
+						if(substr($key, -3) === '_id') {
+							$data[$key] = $val . '';
+						}
+					}
 				}
 
-				$data[] = $t_data;
+				$output[] = $data;
 			}
 
 			$this->count = $cursor->count();
 
-			return $data;
+			return $output;
 		} catch (Exception $e) {
 			$this->error = $e->getMessage();
 		}
@@ -260,19 +358,45 @@ class ApiProducerDriverMongoDB {
 		$result = array();
 
 		while(list($key, $values) = each($input)) {
+			$convert_id = false;
+
+			if($options['_convert_id']) {
+				if($key === 'id') {
+					$convert_id = true;
+					$key = '_id';
+				} elseif(substr($key, -3) === '_id') {
+					$convert_id = true;
+				}
+			}
+
 			$query[$key] = array(
 				'$in' => array(),
 			);
 
 			if(!is_array($values)) {
-				$query[$key]['$in'][] = $values;
+				try {
+					$query[$key]['$in'][] = ($convert_id) ?
+						new MongoId($values) : $values;
+				} catch (Exception $e) {
+					$this->error = $e->getMessage();
+					return false;
+				}
+
 				continue;
 			}
 
 			if(array_key_exists('eq', $values)) {
 				while(list($junk, $value) =
 						each($values['eq'])) {
-					$query[$key]['$in'][] = $value;
+					try {
+						$query[$key]['$in'][] =
+							($convert_id) ?
+							new MongoId($value) :
+							$value;
+					} catch (Exception $e) {
+						$this->error = $e->getMessage();
+						return false;
+					}
 				}
 			}
 
@@ -306,7 +430,7 @@ class ApiProducerDriverMongoDB {
 				$options['outputFields'] = array();
 			}
 
-			if(!$options['id_as_string']) {
+			if(!$options['_convert_id']) {
 				if(!array_key_exists('_id',
 						$options['outputFields'])) {
 					$options['outputFields']['_id'] = false;
@@ -321,9 +445,17 @@ class ApiProducerDriverMongoDB {
 				return array();
 			}
 
-			if($options['id_as_string']) {
+			if($options['_convert_id']) {
 				$result['id'] = $result['_id'] . '';
 				unset($result['_id']);
+
+				while(list($key, $val) = each($result)) {
+					if(substr($key, -3) === '_id') {
+						$result[$key] =
+							$this->convertFromId(
+								$val);
+					}
+				}
 			}
 
 			$this->count = 1;
@@ -339,11 +471,21 @@ class ApiProducerDriverMongoDB {
 	 * Build and run insert()
 	 * @param string $collection
 	 * @param array $input field/values to add
+	 * @param array $options
 	 * @return mixed modified $input or false
 	 */
-	public function insert($collection, $input) {
+	public function insert($collection, $input, $options = array()) {
 		$this->error = '';
 		$col = '';
+		$output = array();
+
+		if($options['_convert_id']) {
+			$input = $this->convertToid($input);
+
+			if($input === false) {
+				return false;
+			}
+		}
 
 		try {
 			$col = $this->db->selectCollection($collection);
@@ -351,7 +493,17 @@ class ApiProducerDriverMongoDB {
 			$col->insert($input, array('safe' => true));
 
 			if(array_key_exists('_id', $input)) {
-				return $input;
+				$output = $input;
+
+				if($options['_convert_id']) {
+					$output = $this->convertFromid($output);
+
+					if($output === false) {
+						return false;
+					}
+				}
+
+				return $output;
 			}
 
 			$this->error = '_id was not created';
