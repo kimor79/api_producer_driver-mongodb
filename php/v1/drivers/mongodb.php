@@ -496,7 +496,7 @@ class ApiProducerDriverMongoDB {
 				$output = $input;
 
 				if($options['_convert_id']) {
-					$output = $this->convertFromid($output);
+					$output = $this->convertFromId($output);
 
 					if($output === false) {
 						return false;
