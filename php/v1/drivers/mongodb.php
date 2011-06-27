@@ -116,13 +116,13 @@ class ApiProducerDriverMongoDB {
 		}
 
 		while(list($key, $val) = each($input)) {
-			if(substr($key, -3) !== '_id') {
-				continue;
-			}
-
 			if($key === 'id') {
 				unset($output[$key]);
 				$key = '_id';
+			}
+
+			if(substr($key, -3) !== '_id') {
+				continue;
 			}
 
 			$output[$key] = $this->convertFromId($val);
@@ -151,13 +151,13 @@ class ApiProducerDriverMongoDB {
 		}
 
 		while(list($key, $val) = each($input)) {
-			if(substr($key, -3) !== '_id') {
-				continue;
-			}
-
 			if($key === 'id') {
 				unset($output[$key]);
 				$key = '_id';
+			}
+
+			if(substr($key, -3) !== '_id') {
+				continue;
 			}
 
 			$output[$key] = $this->convertToId($val);
@@ -507,6 +507,46 @@ class ApiProducerDriverMongoDB {
 			}
 
 			$this->error = '_id was not created';
+		} catch (Exception $e) {
+			$this->error = $e->getMessage();
+		}
+
+		return false;
+	}
+
+	/**
+	 * Build and run update()
+	 * @param string $collection
+	 * @param array $key key to search for
+	 * @param array $input field/values to add
+	 * @param array $options
+	 * @return bool
+	 */
+	public function update($collection, $key, $input, $options = array()) {
+		$this->error = '';
+		$col = '';
+		$output = array();
+
+		if($options['_convert_id']) {
+			$input = $this->convertToId($input);
+
+			if($input === false) {
+				return false;
+			}
+
+			$key = $this->convertToId($key);
+
+			if($key === false) {
+				return false;
+			}
+		}
+
+		try {
+			$col = $this->db->selectCollection($collection);
+
+			$col->update($key, $input, array('safe' => true));
+
+			return true;
 		} catch (Exception $e) {
 			$this->error = $e->getMessage();
 		}
