@@ -160,7 +160,7 @@ class ApiProducerDriverMongoDB {
 				$key = '_id';
 			}
 
-			$output[$key] = $this->convertFromId($val);
+			$output[$key] = $this->convertToId($val);
 
 			if($output[$key] === false) {
 				return false;
@@ -480,7 +480,7 @@ class ApiProducerDriverMongoDB {
 		$output = array();
 
 		if($options['_convert_id']) {
-			$input = $this->convertToid($input);
+			$input = $this->convertToId($input);
 
 			if($input === false) {
 				return false;
