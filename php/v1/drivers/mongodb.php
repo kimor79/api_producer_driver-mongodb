@@ -300,6 +300,10 @@ class ApiProducerDriverMongoDB {
 				}
 			}
 
+			if(is_null($options['outputFields']['_id'])) {
+				unset($options['outputFields']['_id']);
+			}
+
 			$cursor->fields($options['outputFields']);
 
 			if($options['numResults']) {
@@ -435,6 +439,10 @@ class ApiProducerDriverMongoDB {
 						$options['outputFields'])) {
 					$options['outputFields']['_id'] = false;
 				}
+			}
+
+			if(is_null($options['outputFields']['_id'])) {
+				unset($options['outputFields']['_id']);
 			}
 
 			$result = $col->findOne($query,
