@@ -258,6 +258,22 @@ class ApiProducerDriverMongoDB {
 				}
 			}
 
+			if(array_key_exists('ge', $values)) {
+				$query[$key]['$gte'] = $values['ge'];
+			}
+
+			if(array_key_exists('gt', $values)) {
+				$query[$key]['$gt'] = $values['gt'];
+			}
+
+			if(array_key_exists('le', $values)) {
+				$query[$key]['$lte'] = $values['le'];
+			}
+
+			if(array_key_exists('lt', $values)) {
+				$query[$key]['$lt'] = $values['lt'];
+			}
+
 			if(array_key_exists('re', $values)) {
 				while(list($junk, $value) =
 						each($values['re'])) {
@@ -402,6 +418,22 @@ class ApiProducerDriverMongoDB {
 						return false;
 					}
 				}
+			}
+
+			if(array_key_exists('ge', $values)) {
+				$query[$key]['$gte'] = $values['ge'];
+			}
+
+			if(array_key_exists('gt', $values)) {
+				$query[$key]['$gt'] = $values['gt'];
+			}
+
+			if(array_key_exists('le', $values)) {
+				$query[$key]['$lte'] = $values['le'];
+			}
+
+			if(array_key_exists('lt', $values)) {
+				$query[$key]['$lt'] = $values['lt'];
 			}
 
 			if(array_key_exists('re', $values)) {
