@@ -565,7 +565,12 @@ class ApiProducerDriverMongoDB {
 	public function update($collection, $key, $input, $options = array()) {
 		$this->error = '';
 		$col = '';
+		$multiple = false;
 		$output = array();
+
+		if($options['multiple']) {
+			$multiple = true;
+		}
 
 		if($options['_convert_id']) {
 			$input = $this->convertToId($input);
@@ -584,7 +589,10 @@ class ApiProducerDriverMongoDB {
 		try {
 			$col = $this->db->selectCollection($collection);
 
-			$col->update($key, $input, array('safe' => true));
+			$col->update($key, $input, array(
+				'multiple' => $multiple,
+				'safe' => true,
+			));
 
 			return true;
 		} catch (Exception $e) {
