@@ -214,6 +214,11 @@ class ApiProducerDriverMongoDB {
 		$cursor = NULL;
 		$output = array();
 		$query = array();
+		$sub_details = true;
+
+		if(array_key_exists('subDetails', $options)) {
+			$sub_details = $options['subDetails'];
+		}
 
 		while(list($key, $values) = each($input)) {
 			$convert_id = false;
@@ -338,19 +343,30 @@ class ApiProducerDriverMongoDB {
 
 			while($cursor->hasNext()) {
 				$data = $cursor->getNext();
+				$o_data = array();
 
-				if($options['_convert_id']) {
-					$data['id'] = $data['_id'] . '';
-					unset($data['_id']);
+				while(list($key, $val) = each($data)) {
+					if(!$sub_details) {
+						if(is_array($val)) {
+							continue;
+						}
+					}
 
-					while(list($key, $val) = each($data)) {
+					$o_data[$key] = $val;
+
+					if($options['_convert_id']) {
+						$o_data['id'] =
+							$o_data['_id'] . '';
+						unset($o_data['_id']);
+
 						if(substr($key, -3) === '_id') {
-							$data[$key] = $val . '';
+							$o_data[$key] =
+								$val . '';
 						}
 					}
 				}
 
-				$output[] = $data;
+				$output[] = $o_data;
 			}
 
 			$this->count = $cursor->count();
