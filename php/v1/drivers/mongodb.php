@@ -345,6 +345,11 @@ class ApiProducerDriverMongoDB {
 				$data = $cursor->getNext();
 				$o_data = array();
 
+				if($options['_convert_id']) {
+					$o_data['id'] = $data['_id'] . '';
+					unset($data['_id']);
+				}
+
 				while(list($key, $val) = each($data)) {
 					if(!$sub_details) {
 						if(is_array($val)) {
@@ -355,10 +360,6 @@ class ApiProducerDriverMongoDB {
 					$o_data[$key] = $val;
 
 					if($options['_convert_id']) {
-						$o_data['id'] =
-							$o_data['_id'] . '';
-						unset($o_data['_id']);
-
 						if(substr($key, -3) === '_id') {
 							$o_data[$key] =
 								$val . '';
