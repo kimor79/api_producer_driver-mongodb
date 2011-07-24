@@ -232,6 +232,10 @@ class ApiProducerDriverMongoDB {
 				}
 			}
 
+			if($options['_replace_colon']) {
+				$key = str_replace(':', '.', $key);
+			}
+
 			$query[$key] = array(
 				'$in' => array(),
 			);
@@ -409,6 +413,10 @@ class ApiProducerDriverMongoDB {
 				} elseif(substr($key, -3) === '_id') {
 					$convert_id = true;
 				}
+			}
+
+			if($options['_replace_colon']) {
+				$key = str_replace(':', '.', $key);
 			}
 
 			$query[$key] = array(
