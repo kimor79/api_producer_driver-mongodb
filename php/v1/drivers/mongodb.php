@@ -109,23 +109,24 @@ class ApiProducerDriverMongoDB {
 	 * @return mixed
 	 */
 	public function convertFromId($input) {
-		$output = $input;
-
-		if(!is_array($input)) {
-			return $output . '';
-		}
+		$output = array();
 
 		while(list($key, $val) = each($input)) {
+			$convert = false;
+
 			if($key === 'id') {
-				unset($output[$key]);
-				$key = '_id';
+				$convert = true;
+			} elseif(substr($key, -3) === '_id') {
+				$convert = true;
+			} elseif(is_array($val)) {
+				$output[$key] = $this->convertFromId($val);
+			} else {
+				$output[$key] = $val;
 			}
 
-			if(substr($key, -3) !== '_id') {
-				continue;
+			if($convert) {
+				$output[$key] = $this->_convertFromId($val);
 			}
-
-			$output[$key] = $this->convertFromId($val);
 		}
 
 		return $output;
@@ -133,37 +134,27 @@ class ApiProducerDriverMongoDB {
 
 	/**
 	 * Convert values to MongoId objects
-	 * @param mixed $input
+	 * @param array $input
 	 * @return mixed
 	 */
 	public function convertToId($input) {
-		$output = $input;
-
-		if(!is_array($input)) {
-			try {
-				$output = new MongoId($input);
-			} catch(Exception $e) {
-				$this->error = $e->getMessage();
-				return false;
-			}
-
-			return $output;
-		}
+		$output = array();
 
 		while(list($key, $val) = each($input)) {
+			$convert = false;
+
 			if($key === 'id') {
-				unset($output[$key]);
-				$key = '_id';
+				$convert = true;
+			} elseif(substr($key, -3) === '_id') {
+				$convert = true;
+			} elseif(is_array($val)) {
+				$output[$key] = $this->convertToId($val);
+			} else {
+				$output[$key] = $val;
 			}
 
-			if(substr($key, -3) !== '_id') {
-				continue;
-			}
-
-			$output[$key] = $this->convertToId($val);
-
-			if($output[$key] === false) {
-				return false;
+			if($convert) {
+				$output[$key] = $this->_convertToId($val);
 			}
 		}
 
@@ -351,32 +342,27 @@ class ApiProducerDriverMongoDB {
 			}
 
 			while($cursor->hasNext()) {
-				$data = $cursor->getNext();
-				$o_data = array();
+				$t_data = $cursor->getNext();
+				$data = array();
 
-				if($options['_convert_id']) {
-					$o_data['id'] = $data['_id'] . '';
-					unset($data['_id']);
-				}
-
-				while(list($key, $val) = each($data)) {
+				while(list($key, $val) = each($t_data)) {
 					if(!$sub_details) {
 						if(is_array($val)) {
 							continue;
 						}
 					}
 
-					$o_data[$key] = $val;
-
-					if($options['_convert_id']) {
-						if(substr($key, -3) === '_id') {
-							$o_data[$key] =
-								$val . '';
-						}
-					}
+					$data[$key] = $val;
 				}
 
-				$output[] = $o_data;
+				if($options['_convert_id']) {
+					$data = $this->convertFromId($data);
+
+					$data['id'] = $data['_id'];
+					unset($data['_id']);
+				}
+
+				$output[] = $data;
 			}
 
 			$this->count = $cursor->count();
@@ -520,16 +506,9 @@ class ApiProducerDriverMongoDB {
 			}
 
 			if($options['_convert_id']) {
-				$result['id'] = $result['_id'] . '';
+				$result = $this->convertFromId($result);
+				$result['id'] = $result['_id'];
 				unset($result['_id']);
-
-				while(list($key, $val) = each($result)) {
-					if(substr($key, -3) === '_id') {
-						$result[$key] =
-							$this->convertFromId(
-								$val);
-					}
-				}
 			}
 
 			$this->count = 1;
@@ -559,6 +538,11 @@ class ApiProducerDriverMongoDB {
 			if($input === false) {
 				return false;
 			}
+
+			if(array_key_exists('id', $input)) {
+				$input['_id'] = $input['id'];
+				unset($input['id']);
+			}
 		}
 
 		try {
@@ -572,9 +556,8 @@ class ApiProducerDriverMongoDB {
 				if($options['_convert_id']) {
 					$output = $this->convertFromId($output);
 
-					if($output === false) {
-						return false;
-					}
+					$output['id'] = $output['_id'];
+					unset($output['_id']);
 				}
 
 				return $output;
@@ -613,10 +596,20 @@ class ApiProducerDriverMongoDB {
 				return false;
 			}
 
+			if(array_key_exists('id', $input)) {
+				$input['_id'] = $input['id'];
+				unset($input['id']);
+			}
+
 			$key = $this->convertToId($key);
 
 			if($key === false) {
 				return false;
+			}
+
+			if(array_key_exists('id', $key)) {
+				$key['_id'] = $key['id'];
+				unset($key['id']);
 			}
 		}
 
@@ -634,6 +627,50 @@ class ApiProducerDriverMongoDB {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Convert an object id into a string
+	 * @param mixed $input
+	 * @return mixed
+	 */
+	public function _convertToId($input) {
+		if(!is_array($input)) {
+			try {
+				$output = new MongoId($input);
+				return $output;
+			} catch(Exception $e) {
+				$this->error = $e->getMessage();
+				return false;
+			}
+		}
+
+		$output = array();
+
+		while(list($key, $value) = each($input)) {
+			$output[$key] = $this->_convertToId($value);
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Convert a value into an object id
+	 * @param mixed $input
+	 * @return mixed
+	 */
+	public function _convertFromId($input) {
+		if(!is_array($input)) {
+			return $input . '';
+		}
+
+		$output = array();
+
+		while(list($key, $value) = each($input)) {
+			$output[$key] = $this->_convertFromId($value);
+		}
+
+		return $output;
 	}
 }
 
