@@ -333,7 +333,7 @@ class ApiProducerDriverMongoDB {
 
 			if(array_key_exists('sortField', $options)) {
 				$cursor->sort(array($options['sortField'] =>
-					($options['sortDir'] == 'asc') ? 1 : 0,
+					($options['sortDir'] == 'asc') ? 1 : -1,
 				));
 			}
 
