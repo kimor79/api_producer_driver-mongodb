@@ -332,9 +332,15 @@ class ApiProducerDriverMongoDB {
 			}
 
 			if(array_key_exists('sortField', $options)) {
-				$cursor->sort(array($options['sortField'] =>
-					($options['sortDir'] == 'asc') ? 1 : -1,
-				));
+				if(is_array($options['sortField'])) {
+					$cursor->sort($options['sortField']);
+				} else {
+					$cursor->sort(array(
+						$options['sortField'] =>
+						($options['sortDir'] == 'asc') ?
+						1 : -1,
+					));
+				}
 			}
 
 			if(array_key_exists('startIndex', $options)) {
