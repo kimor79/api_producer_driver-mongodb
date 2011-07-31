@@ -178,6 +178,29 @@ class ApiProducerDriverMongoDB {
 	}
 
 	/**
+	 * Flatten an array
+	 * foo => bar => array(a => b)
+	 * becomes foo.bar.a => b
+	 * @param array $input
+	 * @return mixed
+	 */
+	public function flattenData($input) {
+		$output = array();
+
+		while(list($key, $value) = each($input)) {
+			if(!is_array($value)) {
+				$output[$key] = $value;
+				continue;
+			}
+
+			$output = array_merge($output, $this->_flattenData(
+				$value, $key));
+		}
+
+		return $output;
+	}
+
+	/**
 	 * Get a config value
 	 * @param string $key
 	 * @param string $default
@@ -368,6 +391,10 @@ class ApiProducerDriverMongoDB {
 					unset($data['_id']);
 				}
 
+				if($options['flatOutput']) {
+					$data = $this->flattenData($data);
+				}
+
 				$output[] = $data;
 			}
 
@@ -515,6 +542,10 @@ class ApiProducerDriverMongoDB {
 				$result = $this->convertFromId($result);
 				$result['id'] = $result['_id'];
 				unset($result['_id']);
+			}
+
+			if($options['flatOutput']) {
+				$result = $this->flattenData($result);
 			}
 
 			$this->count = 1;
@@ -674,6 +705,29 @@ class ApiProducerDriverMongoDB {
 
 		while(list($key, $value) = each($input)) {
 			$output[$key] = $this->_convertFromId($value);
+		}
+
+		return $output;
+	}
+
+	/**
+	 * Flatten array
+	 * @param array $input
+	 * @param string $key
+	 * @return array
+	 */
+	public function _flattenData($input, $prefix) {
+		$output = array();
+		while(list($key, $value) = each($input)) {
+			$nkey = sprintf("%s.%s", $prefix, $key);
+
+			if(!is_array($value)) {
+				$output[$nkey] = $value;
+				continue;
+			}
+
+			$output = array_merge($output, $this->_flattenData(
+				$value, $nkey));
 		}
 
 		return $output;
