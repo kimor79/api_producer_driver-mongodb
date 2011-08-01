@@ -182,9 +182,10 @@ class ApiProducerDriverMongoDB {
 	 * foo => bar => array(a => b)
 	 * becomes foo.bar.a => b
 	 * @param array $input
+	 * @param string $delim
 	 * @return mixed
 	 */
-	public function flattenData($input) {
+	public function flattenData($input, $delim = '.') {
 		$output = array();
 
 		while(list($key, $value) = each($input)) {
@@ -194,7 +195,7 @@ class ApiProducerDriverMongoDB {
 			}
 
 			$output = array_merge($output, $this->_flattenData(
-				$value, $key));
+				$value, $key, $delim));
 		}
 
 		return $output;
@@ -392,7 +393,13 @@ class ApiProducerDriverMongoDB {
 				}
 
 				if($options['flatOutput']) {
-					$data = $this->flattenData($data);
+					if($options['_replace_colon']) {
+						$data = $this->flattenData(
+							$data, ':');
+					} else {
+						$data = $this->flattenData(
+							$data);
+					}
 				}
 
 				$output[] = $data;
@@ -545,7 +552,12 @@ class ApiProducerDriverMongoDB {
 			}
 
 			if($options['flatOutput']) {
-				$result = $this->flattenData($result);
+				if($options['_replace_colon']) {
+					$result = $this->flattenData($result,
+						':');
+				} else {
+					$result = $this->flattenData($result);
+				}
 			}
 
 			$this->count = 1;
@@ -713,13 +725,14 @@ class ApiProducerDriverMongoDB {
 	/**
 	 * Flatten array
 	 * @param array $input
-	 * @param string $key
+	 * @param string $prefix
+	 * @param string $delim
 	 * @return array
 	 */
-	public function _flattenData($input, $prefix) {
+	public function _flattenData($input, $prefix, $delim) {
 		$output = array();
 		while(list($key, $value) = each($input)) {
-			$nkey = sprintf("%s.%s", $prefix, $key);
+			$nkey = sprintf("%s%s%s", $prefix, $delim, $key);
 
 			if(!is_array($value)) {
 				$output[$nkey] = $value;
@@ -727,7 +740,7 @@ class ApiProducerDriverMongoDB {
 			}
 
 			$output = array_merge($output, $this->_flattenData(
-				$value, $nkey));
+				$value, $nkey, $delim));
 		}
 
 		return $output;
