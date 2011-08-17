@@ -631,11 +631,25 @@ class ApiProducerDriverMongoDB {
 	public function update($collection, $key, $input, $options = array()) {
 		$this->error = '';
 		$col = '';
-		$multiple = false;
 		$output = array();
+		$uoptions = array(
+			'safe' => true,
+		);
+
+		if($options['fsync']) {
+			$uoptions['fsync'] = true;
+		}
 
 		if($options['multiple']) {
-			$multiple = true;
+			$uoptions['multiple'] = true;
+		}
+
+		if($options['timeout']) {
+			$uoptions['timeout'] = true;
+		}
+
+		if($options['upsert']) {
+			$uoptions['upsert'] = true;
 		}
 
 		if($options['_convert_id']) {
@@ -665,10 +679,7 @@ class ApiProducerDriverMongoDB {
 		try {
 			$col = $this->db->selectCollection($collection);
 
-			$col->update($key, $input, array(
-				'multiple' => $multiple,
-				'safe' => true,
-			));
+			$col->update($key, $input, $uoptions);
 
 			return true;
 		} catch (Exception $e) {
