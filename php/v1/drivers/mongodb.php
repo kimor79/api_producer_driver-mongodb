@@ -621,6 +621,69 @@ class ApiProducerDriverMongoDB {
 	}
 
 	/**
+	 * Build and run remove()
+	 * @param string $collection
+	 * @param array $key key to search for
+	 * @param array $options
+	 * @return bool
+	 */
+	public function remove($collection, $key, $options = array()) {
+		$this->error = '';
+		$col = '';
+		$output = array();
+		$uoptions = array(
+			'safe' => true,
+		);
+
+		if($options['fsync']) {
+			$uoptions['fsync'] = true;
+		}
+
+		if($options['justOne']) {
+			$uoptions['justOne'] = true;
+		}
+
+		if($options['timeout']) {
+			$uoptions['timeout'] = true;
+		}
+
+		if($options['_convert_id']) {
+			$key = $this->convertToId($key);
+
+			if($key === false) {
+				return false;
+			}
+
+			if(array_key_exists('id', $key)) {
+				$key['_id'] = $key['id'];
+				unset($key['id']);
+			}
+		}
+
+		try {
+			$col = $this->db->selectCollection($collection);
+
+			$return = $col->remove($key, $uoptions);
+
+			if(array_key_exists('n', $return)) {
+				$this->count = (int) $return['n'];
+			}
+
+			if($return['ok']) {
+				return true;
+			}
+
+			if($return['err']) {
+				$this->error = $return['err'];
+			}
+		} catch (Exception $e) {
+			$this->error = $e->getMessage();
+		}
+
+		return false;
+	}
+
+	/**
 	 * Build and run update()
 	 * @param string $collection
 	 * @param array $key key to search for
